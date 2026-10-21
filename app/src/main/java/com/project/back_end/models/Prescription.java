@@ -1,5 +1,16 @@
 package com.project.back_end.models;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+/**
+ * Documento MongoDB que representa una receta médica.
+ * Se persiste en la colección {@code prescriptions}; {@code appointmentId}
+ * es una referencia lógica por valor a la cita en MySQL (sin FK cross-DB).
+ */
+@Document(collection = "prescriptions")
 public class Prescription {
 
   // @Document annotation:
@@ -52,5 +63,118 @@ public class Prescription {
 //    - Standard getter and setter methods are provided for all fields: id, patientName, medication, dosage, doctorNotes, and appointmentId.
 //    - These methods allow access and modification of the fields of the Prescription class.
 
+    /** Identificador MongoDB (_id); se genera automáticamente como ObjectId. */
+    @Id
+    private String id;
+
+    /**
+     * Nombre del paciente (instantánea desnormalizada de MySQL, no el objeto completo):
+     * evita joins cross-DB y datos obsoletos si el perfil del paciente cambia.
+     */
+    @NotNull
+    @Size(min = 3, max = 100)
+    private String patientName;
+
+    /**
+     * Referencia lógica a la cita en MySQL (sin FK entre motores);
+     * solo se resuelve por valor al buscar la receta de una cita.
+     */
+    @NotNull
+    private Long appointmentId;
+
+    /** Nombre del medicamento; obligatorio, entre 3 y 100 caracteres. */
+    @NotNull
+    @Size(min = 3, max = 100)
+    private String medication;
+
+    /** Indicaciones de dosificación; obligatorio, entre 3 y 20 caracteres. */
+    @NotNull
+    @Size(min = 3, max = 20)
+    private String dosage;
+
+    /** Notas opcionales del doctor; máximo 200 caracteres, puede ser null. */
+    @Size(max = 200)
+    private String doctorNotes;
+
+    /** Constructor vacío requerido por Spring Data MongoDB al deserializar. */
+    public Prescription() {
+    }
+
+    /**
+     * Constructor con los campos principales de una receta.
+     *
+     * @param patientName    nombre del paciente
+     * @param medication     medicamento prescrito
+     * @param dosage         dosificación
+     * @param doctorNotes    notas del doctor (opcional)
+     * @param appointmentId  id de la cita en MySQL
+     */
+    public Prescription(String patientName, String medication, String dosage, String doctorNotes, Long appointmentId) {
+        this.patientName = patientName;
+        this.medication = medication;
+        this.dosage = dosage;
+        this.doctorNotes = doctorNotes;
+        this.appointmentId = appointmentId;
+    }
+
+    /** @return identificador MongoDB del documento */
+    public String getId() {
+        return id;
+    }
+
+    /** @param id identificador a asignar */
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    /** @return nombre del paciente */
+    public String getPatientName() {
+        return patientName;
+    }
+
+    /** @param patientName nombre a asignar */
+    public void setPatientName(String patientName) {
+        this.patientName = patientName;
+    }
+
+    /** @return id de la cita asociada en MySQL */
+    public Long getAppointmentId() {
+        return appointmentId;
+    }
+
+    /** @param appointmentId id de la cita a asignar */
+    public void setAppointmentId(Long appointmentId) {
+        this.appointmentId = appointmentId;
+    }
+
+    /** @return nombre del medicamento */
+    public String getMedication() {
+        return medication;
+    }
+
+    /** @param medication medicamento a asignar */
+    public void setMedication(String medication) {
+        this.medication = medication;
+    }
+
+    /** @return indicaciones de dosificación */
+    public String getDosage() {
+        return dosage;
+    }
+
+    /** @param dosage dosificación a asignar */
+    public void setDosage(String dosage) {
+        this.dosage = dosage;
+    }
+
+    /** @return notas del doctor (puede ser null) */
+    public String getDoctorNotes() {
+        return doctorNotes;
+    }
+
+    /** @param doctorNotes notas a asignar (opcional) */
+    public void setDoctorNotes(String doctorNotes) {
+        this.doctorNotes = doctorNotes;
+    }
 
 }

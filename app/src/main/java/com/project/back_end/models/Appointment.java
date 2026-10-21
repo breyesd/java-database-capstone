@@ -1,5 +1,23 @@
 package com.project.back_end.models;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Transient;
+import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.NotNull;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+
+/**
+ * Entidad JPA que representa una cita entre un doctor y un paciente.
+ * Mapea la tabla {@code appointments}; la duración es fija de 1 hora
+ * y el estado usa 0 = scheduled, 1 = completed.
+ */
+@Entity
 public class Appointment {
 
   // @Entity annotation:
@@ -68,5 +86,132 @@ public class Appointment {
 // 10. Getters and Setters:
 //    - Standard getter and setter methods are provided for accessing and modifying the fields: id, doctor, patient, appointmentTime, status, etc.
 
-}
+    /** Identificador autoincremental (primary key). */
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
+    /** Doctor de la cita; relación ManyToOne obligatoria. */
+    @ManyToOne
+    @NotNull
+    private Doctor doctor;
+
+    /** Paciente de la cita; relación ManyToOne obligatoria. */
+    @ManyToOne
+    @NotNull
+    private Patient patient;
+
+    /** Fecha y hora de inicio; debe ser futura al momento de crear la cita. */
+    @Future(message = "Appointment time must be in the future")
+    private LocalDateTime appointmentTime;
+
+    /**
+     * Estado de la cita: 0 = scheduled, 1 = completed.
+     * Primitivo int (no admite {@code @NotNull}); el estado inicial es 0
+     * y pasa a 1 al guardar la receta asociada.
+     */
+    private int status;
+
+    /** Constructor vacío requerido por JPA. */
+    public Appointment() {
+    }
+
+    /**
+     * Constructor para crear una cita con sus datos principales.
+     *
+     * @param doctor          doctor asignado
+     * @param patient         paciente asignado
+     * @param appointmentTime fecha y hora de inicio (futura)
+     * @param status          0 = scheduled, 1 = completed
+     */
+    public Appointment(Doctor doctor, Patient patient, LocalDateTime appointmentTime, int status) {
+        this.doctor = doctor;
+        this.patient = patient;
+        this.appointmentTime = appointmentTime;
+        this.status = status;
+    }
+
+    /** @return identificador de la cita */
+    public Long getId() {
+        return id;
+    }
+
+    /** @param id identificador a asignar */
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    /** @return doctor de la cita */
+    public Doctor getDoctor() {
+        return doctor;
+    }
+
+    /** @param doctor doctor a asignar */
+    public void setDoctor(Doctor doctor) {
+        this.doctor = doctor;
+    }
+
+    /** @return paciente de la cita */
+    public Patient getPatient() {
+        return patient;
+    }
+
+    /** @param patient paciente a asignar */
+    public void setPatient(Patient patient) {
+        this.patient = patient;
+    }
+
+    /** @return fecha y hora de inicio de la cita */
+    public LocalDateTime getAppointmentTime() {
+        return appointmentTime;
+    }
+
+    /** @param appointmentTime fecha y hora de inicio a asignar */
+    public void setAppointmentTime(LocalDateTime appointmentTime) {
+        this.appointmentTime = appointmentTime;
+    }
+
+    /** @return estado actual (0 = scheduled, 1 = completed) */
+    public int getStatus() {
+        return status;
+    }
+
+    /** @param status estado a asignar (0 = scheduled, 1 = completed) */
+    public void setStatus(int status) {
+        this.status = status;
+    }
+
+    /**
+     * Hora de fin de la cita: inicio + 1 hora (duración fija del sistema).
+     * Método transitorio (no persiste); pensado para la vista/DTO.
+     *
+     * @return hora de fin, o {@code null} si aún no hay hora de inicio
+     */
+    @Transient
+    public LocalDateTime getEndTime() {
+        return appointmentTime == null ? null : appointmentTime.plusHours(1);
+    }
+
+    /**
+     * Extrae solo la parte de fecha de {@code appointmentTime}.
+     * Método transitorio (no persiste); pensado para la vista/DTO.
+     *
+     * @return fecha de la cita, o {@code null} si aún no hay hora de inicio
+     */
+    @Transient
+    public LocalDate getAppointmentDate() {
+        return appointmentTime == null ? null : appointmentTime.toLocalDate();
+    }
+
+    /**
+     * Extrae solo la parte de hora de {@code appointmentTime}.
+     * Método transitorio (no persiste); pensado para la vista/DTO.
+     *
+     * @return hora de la cita, o {@code null} si aún no hay hora de inicio
+     */
+    @Transient
+    public LocalTime getAppointmentTimeOnly() {
+        return appointmentTime == null ? null : appointmentTime.toLocalTime();
+    }
+
+}

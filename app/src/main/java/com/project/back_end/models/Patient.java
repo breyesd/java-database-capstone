@@ -1,5 +1,20 @@
 package com.project.back_end.models;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
+/**
+ * Entidad JPA que representa un paciente registrado en la clínica.
+ * Mapea la tabla {@code patients}; sus datos de contacto se validan
+ * con Bean Validation antes de persistir.
+ */
+@Entity
 public class Patient {
 // @Entity annotation:
 //    - Marks the class as a JPA entity, meaning it represents a table in the database.
@@ -54,6 +69,115 @@ public class Patient {
 //    - Standard getter and setter methods are provided for all fields: id, name, email, password, phone, and address.
 //    - These methods allow access and modification of the fields of the Patient class.
 
-  
+    /** Identificador autoincremental (primary key). */
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    /** Nombre completo; obligatorio, entre 3 y 100 caracteres. */
+    @NotNull
+    @Size(min = 3, max = 100)
+    private String name;
+
+    /** Correo electrónico de login; obligatorio y con formato válido (también usado como subject del JWT). */
+    @NotNull
+    @Email
+    private String email;
+
+    /** Credencial de acceso; obligatoria, mínimo 6 caracteres. */
+    @NotNull
+    @Size(min = 6)
+    private String password;
+
+    /** Teléfono de exactamente 10 dígitos; el registro rechaza teléfonos duplicados en la capa servicio. */
+    @NotNull
+    @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must be 10 digits")
+    private String phone;
+
+    /** Dirección postal; obligatoria, máximo 255 caracteres. */
+    @NotNull
+    @Size(max = 255)
+    private String address;
+
+    /** Constructor vacío requerido por JPA. */
+    public Patient() {
+    }
+
+    /**
+     * Constructor para crear un paciente con todos sus datos.
+     *
+     * @param name    nombre completo
+     * @param email   correo electrónico de login
+     * @param password contraseña (mínimo 6 caracteres)
+     * @param phone   teléfono de 10 dígitos
+     * @param address dirección (máximo 255 caracteres)
+     */
+    public Patient(String name, String email, String password, String phone, String address) {
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.phone = phone;
+        this.address = address;
+    }
+
+    /** @return identificador del paciente */
+    public Long getId() {
+        return id;
+    }
+
+    /** @param id identificador a asignar */
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    /** @return nombre del paciente */
+    public String getName() {
+        return name;
+    }
+
+    /** @param name nombre a asignar */
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    /** @return correo electrónico */
+    public String getEmail() {
+        return email;
+    }
+
+    /** @param email correo a asignar */
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    /** @return contraseña (uso interno en autenticación) */
+    public String getPassword() {
+        return password;
+    }
+
+    /** @param password contraseña a asignar */
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    /** @return teléfono de 10 dígitos */
+    public String getPhone() {
+        return phone;
+    }
+
+    /** @param phone teléfono a asignar */
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    /** @return dirección postal */
+    public String getAddress() {
+        return address;
+    }
+
+    /** @param address dirección a asignar */
+    public void setAddress(String address) {
+        this.address = address;
+    }
 
 }

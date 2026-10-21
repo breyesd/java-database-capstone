@@ -1,5 +1,18 @@
 package com.project.back_end.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.validation.constraints.NotNull;
+
+/**
+ * Entidad JPA que representa un administrador del sistema.
+ * Mapea la tabla {@code admin}; el username es el identificador de login
+ * y sirve como subject del JWT de rol admin.
+ */
+@Entity
 public class Admin {
 
 // @Entity annotation:
@@ -33,5 +46,64 @@ public class Admin {
 
 // 5. Getters and Setters:
 //    - Standard getter and setter methods are provided for accessing and modifying the fields.
+
+    /** Identificador autoincremental (primary key). */
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    /** Nombre de usuario de login; obligatorio y único en el sistema. */
+    @NotNull
+    private String username;
+
+    /** Credencial de acceso; obligatoria y nunca serializada en respuestas JSON (WRITE_ONLY). */
+    @NotNull
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String password;
+
+    /** Constructor vacío requerido por JPA. */
+    public Admin() {
+    }
+
+    /**
+     * Constructor para crear un admin con sus credenciales.
+     *
+     * @param username nombre de usuario de login
+     * @param password contraseña de acceso
+     */
+    public Admin(String username, String password) {
+        this.username = username;
+        this.password = password;
+    }
+
+    /** @return identificador del admin */
+    public Long getId() {
+        return id;
+    }
+
+    /** @param id identificador a asignar */
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    /** @return nombre de usuario */
+    public String getUsername() {
+        return username;
+    }
+
+    /** @param username nombre de usuario a asignar */
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    /** @return contraseña (uso interno en autenticación) */
+    public String getPassword() {
+        return password;
+    }
+
+    /** @param password contraseña a asignar */
+    public void setPassword(String password) {
+        this.password = password;
+    }
 
 }
