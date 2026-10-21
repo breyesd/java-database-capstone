@@ -197,7 +197,7 @@ _As a patient, I want to view my profile data, so that I can verify my personal 
 **Priority:** Low
 **Story Points:** 2
 **Notes:**
-- Profile editing is out of scope for this iteration (no endpoint defined in the spec).
+- NA
 
 ---
 
@@ -291,4 +291,3 @@ _As a doctor, I want to check a doctor's availability for a date, so that I know
 **Story Points:** 2
 **Notes:**
 - Availability derives from the doctor's `availableTimes` slots versus already booked appointments.
-- Path defined by the project spec; pending confirmation against the course guide (see spec §3.2 ⚠️).
