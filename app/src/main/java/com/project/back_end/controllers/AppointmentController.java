@@ -21,7 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Controller REST de citas: consulta por día (doctor), reserva y
  * actualización (paciente, validando disponibilidad) y cancelación
- * (solo el dueño). El token va como path variable final.
+ * (solo el dueño). El token va como path variable final; la autenticación
+ * y autorización (token + rol) las resuelve el filtro JWT de Spring Security.
  */
 @RestController
 @RequestMapping("/appointments")
@@ -34,7 +35,7 @@ public class AppointmentController {
      * Inyección por constructor de servicios.
      *
      * @param appointmentService servicio de citas
-     * @param service            servicio compartido (validación de token y cita)
+     * @param service            servicio compartido (validación de cita)
      */
     public AppointmentController(AppointmentService appointmentService, Service service) {
         this.appointmentService = appointmentService;
@@ -49,17 +50,12 @@ public class AppointmentController {
      * @param date        fecha {@code yyyy-MM-dd}
      * @param patientName fragmento del nombre o {@code null}
      * @param token       JWT del doctor
-     * @return 200 {@code {appointments: [...]}} / 400 / 401
+     * @return 200 {@code {appointments: [...]}} / 400
      */
     @GetMapping("/{date}/{patientName}/{token}")
     public ResponseEntity<Map<String, Object>> getAppointments(@PathVariable String date,
                                                                @PathVariable String patientName,
                                                                @PathVariable String token) {
-        ResponseEntity<Map<String, String>> validation = service.validateToken(token, "doctor");
-        if (!validation.getStatusCode().is2xxSuccessful()) {
-            return ResponseEntity.status(validation.getStatusCode())
-                    .body(Map.of("message", validation.getBody().get("message")));
-        }
         try {
             return ResponseEntity.ok(appointmentService.getAppointment(patientName, LocalDate.parse(date), token));
         } catch (DateTimeParseException e) {
@@ -73,15 +69,11 @@ public class AppointmentController {
      *
      * @param appointment cita validada por Bean Validation
      * @param token       JWT del paciente
-     * @return 201 éxito / 404 doctor inexistente / 409 slot ocupado / 401 / 500
+     * @return 201 éxito / 404 doctor inexistente / 409 slot ocupado / 500
      */
     @PostMapping("/{token}")
     public ResponseEntity<Map<String, String>> bookAppointment(@Valid @RequestBody Appointment appointment,
                                                                @PathVariable String token) {
-        ResponseEntity<Map<String, String>> validation = service.validateToken(token, "patient");
-        if (!validation.getStatusCode().is2xxSuccessful()) {
-            return validation;
-        }
         int valid = service.validateAppointment(appointment);
         if (valid == -1) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -109,10 +101,6 @@ public class AppointmentController {
     @PutMapping("/{token}")
     public ResponseEntity<Map<String, String>> updateAppointment(@Valid @RequestBody Appointment appointment,
                                                                  @PathVariable String token) {
-        ResponseEntity<Map<String, String>> validation = service.validateToken(token, "patient");
-        if (!validation.getStatusCode().is2xxSuccessful()) {
-            return validation;
-        }
         return appointmentService.updateAppointment(appointment);
     }
 
@@ -127,10 +115,6 @@ public class AppointmentController {
     @DeleteMapping("/{id}/{token}")
     public ResponseEntity<Map<String, String>> cancelAppointment(@PathVariable long id,
                                                                  @PathVariable String token) {
-        ResponseEntity<Map<String, String>> validation = service.validateToken(token, "patient");
-        if (!validation.getStatusCode().is2xxSuccessful()) {
-            return validation;
-        }
         return appointmentService.cancelAppointment(id, token);
     }
 }

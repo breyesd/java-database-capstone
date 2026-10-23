@@ -18,7 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Controller REST de pacientes: registro, login, datos del paciente
  * autenticado, historial de citas (paciente o doctor según {@code user})
- * y filtros de citas.
+ * y filtros de citas. El token va como path variable final; la
+ * autenticación/autorización (token + rol) las resuelve el filtro JWT
+ * de Spring Security.
  */
 @RestController
 @RequestMapping("/patient")
@@ -31,7 +33,7 @@ public class PatientController {
      * Inyección por constructor de servicios.
      *
      * @param patientService servicio de pacientes
-     * @param service        servicio compartido (validación de token y login)
+     * @param service        servicio compartido (login y filtros)
      */
     public PatientController(PatientService patientService, Service service) {
         this.patientService = patientService;
@@ -46,11 +48,6 @@ public class PatientController {
      */
     @GetMapping("/{token}")
     public ResponseEntity<Map<String, Object>> getPatient(@PathVariable String token) {
-        ResponseEntity<Map<String, String>> validation = service.validateToken(token, "patient");
-        if (!validation.getStatusCode().is2xxSuccessful()) {
-            return ResponseEntity.status(validation.getStatusCode())
-                    .body(Map.of("message", validation.getBody().get("message")));
-        }
         return patientService.getPatientDetails(token);
     }
 
@@ -87,23 +84,24 @@ public class PatientController {
     }
 
     /**
-     * Historial de citas de un paciente. El token se valida contra el rol
-     * {@code user} (patient u doctor); con rol patient el id debe coincidir
-     * con el del token. {@code GET /patient/{id}/{user}/{token}}.
+     * Historial de citas de un paciente. El segmento {@code user} debe ser
+     * {@code patient} o {@code doctor} (la URL rule no acota el valor); con
+     * rol patient el id debe coincidir con el del token.
+     * {@code GET /patient/{id}/{user}/{token}}.
      *
      * @param id    id del paciente
      * @param user  rol del solicitante ({@code patient} o {@code doctor})
      * @param token JWT del solicitante
-     * @return 200 {@code {appointments: [...]}} / 401
+     * @return 200 {@code {appointments: [...]}} /
+     *         401 si {@code user} no es patient/doctor o el id no corresponde
      */
     @GetMapping("/{id}/{user}/{token}")
     public ResponseEntity<Map<String, Object>> getPatientAppointment(@PathVariable Long id,
                                                                      @PathVariable String user,
                                                                      @PathVariable String token) {
-        ResponseEntity<Map<String, String>> validation = service.validateToken(token, user);
-        if (!validation.getStatusCode().is2xxSuccessful()) {
-            return ResponseEntity.status(validation.getStatusCode())
-                    .body(Map.of("message", validation.getBody().get("message")));
+        if (!"patient".equalsIgnoreCase(user) && !"doctor".equalsIgnoreCase(user)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Invalid Token or session expired"));
         }
         return patientService.getPatientAppointment(id, token, user);
     }
@@ -123,11 +121,6 @@ public class PatientController {
     public ResponseEntity<Map<String, Object>> filterPatientAppointment(@PathVariable String condition,
                                                                         @PathVariable String name,
                                                                         @PathVariable String token) {
-        ResponseEntity<Map<String, String>> validation = service.validateToken(token, "patient");
-        if (!validation.getStatusCode().is2xxSuccessful()) {
-            return ResponseEntity.status(validation.getStatusCode())
-                    .body(Map.of("message", validation.getBody().get("message")));
-        }
         return service.filterPatient(condition, name, token);
     }
 }

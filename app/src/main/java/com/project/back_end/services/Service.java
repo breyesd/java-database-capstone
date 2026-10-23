@@ -24,8 +24,8 @@ import org.springframework.security.core.Authentication;
  * <p>Nota: {@code filterPatient} depende de {@code PatientService};
  * {@code filterDoctor} y {@code validateAppointment} de {@code DoctorService}.
  * No hay ciclos: esos services no dependen de esta clase.</p>
- * <p>{@code validateToken} queda obsoleto: los controllers pasarán a usar
- * el filtro JWT de seguridad (se elimina en una tarea posterior).</p>
+ * <p>La validación de tokens no vive en esta clase: la resuelve el filtro
+ * JWT de Spring Security (autenticación + RBAC en cada request).</p>
  */
 @org.springframework.stereotype.Service
 public class Service {
@@ -68,22 +68,6 @@ public class Service {
         this.doctorService = doctorService;
         this.patientService = patientService;
         this.authenticationManager = authenticationManager;
-    }
-
-    /**
-     * Valida un token JWT para un rol concreto.
-     *
-     * @param token token JWT a validar
-     * @param user  rol esperado: {@code admin}, {@code doctor} o {@code patient}
-     * @return 200 con mapa vacío si es válido; 401 {@code {message}} si no
-     */
-    public ResponseEntity<Map<String, String>> validateToken(String token, String user) {
-        boolean isValid = tokenService.validateToken(token, user);
-        if (!isValid) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("message", INVALID_TOKEN));
-        }
-        return ResponseEntity.ok(Map.of());
     }
 
     /**

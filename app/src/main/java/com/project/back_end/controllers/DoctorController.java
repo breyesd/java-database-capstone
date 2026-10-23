@@ -22,7 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Controller REST de doctores: lista, alta/edición/borrado (solo admin),
  * login ({@code POST /doctor/login}), disponibilidad y filtros.
- * El token va como path variable final de la ruta (convención del frontend).
+ * El token va como path variable final de la ruta (convención del frontend);
+ * la autenticación/autorización (token + rol) las resuelve el filtro JWT
+ * de Spring Security.
  */
 @RestController
 @RequestMapping("${api.path}" + "doctor")
@@ -35,7 +37,7 @@ public class DoctorController {
      * Inyección por constructor de servicios.
      *
      * @param doctorService servicio de doctores
-     * @param service       servicio compartido (validación de token y filtros)
+     * @param service       servicio compartido (filtros de doctores)
      */
     public DoctorController(DoctorService doctorService, Service service) {
         this.doctorService = doctorService;
@@ -46,11 +48,12 @@ public class DoctorController {
      * Disponibilidad de un doctor en una fecha: slots libres.
      * Ruta: {@code GET /doctor/availability/{user}/{doctorId}/{date}/{token}}.
      *
-     * @param user     rol del solicitante (validado contra el token)
+     * @param user     rol del solicitante (debe ser {@code admin}, {@code doctor} o {@code patient})
      * @param doctorId id del doctor
      * @param date     fecha {@code yyyy-MM-dd}
      * @param token    JWT del solicitante
-     * @return 200 {@code {availability: [...]}} / 401
+     * @return 200 {@code {availability: [...]}} / 400 fecha inválida /
+     *         401 si {@code user} no corresponde a un rol permitido
      */
     @GetMapping("/availability/{user}/{doctorId}/{date}/{token}")
     public ResponseEntity<Map<String, Object>> getDoctorAvailability(
@@ -58,9 +61,10 @@ public class DoctorController {
             @PathVariable Long doctorId,
             @PathVariable String date,
             @PathVariable String token) {
-        ResponseEntity<Map<String, String>> validation = service.validateToken(token, user);
-        if (!validation.getStatusCode().is2xxSuccessful()) {
-            return ResponseEntity.status(validation.getStatusCode()).body(Map.of("message", validation.getBody().get("message")));
+        if (!"admin".equalsIgnoreCase(user) && !"doctor".equalsIgnoreCase(user)
+                && !"patient".equalsIgnoreCase(user)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Invalid Token or session expired"));
         }
         try {
             return ResponseEntity.ok(Map.of("availability",
@@ -85,15 +89,11 @@ public class DoctorController {
      *
      * @param doctor doctor validado por Bean Validation
      * @param token  JWT de admin
-     * @return 200 éxito / 409 duplicado / 401 / 500
+     * @return 200 éxito / 409 duplicado / 500
      */
     @PostMapping("/{token}")
     public ResponseEntity<Map<String, String>> saveDoctor(@Valid @RequestBody Doctor doctor,
                                                           @PathVariable String token) {
-        ResponseEntity<Map<String, String>> validation = service.validateToken(token, "admin");
-        if (!validation.getStatusCode().is2xxSuccessful()) {
-            return validation;
-        }
         return switch (doctorService.saveDoctor(doctor)) {
             case 1 -> ResponseEntity.ok(Map.of("message", "Doctor added to db"));
             case -1 -> ResponseEntity.status(HttpStatus.CONFLICT)
@@ -120,15 +120,11 @@ public class DoctorController {
      *
      * @param doctor doctor con datos actualizados
      * @param token  JWT de admin
-     * @return 200 éxito / 404 no encontrado / 401 / 500
+     * @return 200 éxito / 404 no encontrado / 500
      */
     @PutMapping("/{token}")
     public ResponseEntity<Map<String, String>> updateDoctor(@Valid @RequestBody Doctor doctor,
                                                             @PathVariable String token) {
-        ResponseEntity<Map<String, String>> validation = service.validateToken(token, "admin");
-        if (!validation.getStatusCode().is2xxSuccessful()) {
-            return validation;
-        }
         return switch (doctorService.updateDoctor(doctor)) {
             case 1 -> ResponseEntity.ok(Map.of("message", "Doctor updated"));
             case -1 -> ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -144,15 +140,11 @@ public class DoctorController {
      *
      * @param id    id del doctor
      * @param token JWT de admin
-     * @return 200 éxito / 404 no encontrado / 401 / 500
+     * @return 200 éxito / 404 no encontrado / 500
      */
     @DeleteMapping("/{id}/{token}")
     public ResponseEntity<Map<String, String>> deleteDoctor(@PathVariable long id,
                                                             @PathVariable String token) {
-        ResponseEntity<Map<String, String>> validation = service.validateToken(token, "admin");
-        if (!validation.getStatusCode().is2xxSuccessful()) {
-            return validation;
-        }
         return switch (doctorService.deleteDoctor(id)) {
             case 1 -> ResponseEntity.ok(Map.of("message", "Doctor deleted successfully"));
             case -1 -> ResponseEntity.status(HttpStatus.NOT_FOUND)
