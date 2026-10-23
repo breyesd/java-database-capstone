@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -32,6 +33,7 @@ public class PatientService {
     private final PatientRepository patientRepository;
     private final AppointmentRepository appointmentRepository;
     private final TokenService tokenService;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * Inyección por constructor de dependencias del servicio.
@@ -39,24 +41,29 @@ public class PatientService {
      * @param patientRepository    repositorio de pacientes
      * @param appointmentRepository repositorio de citas
      * @param tokenService         extractor de email del JWT
+     * @param passwordEncoder      codificador BCrypt para el registro
      */
     public PatientService(PatientRepository patientRepository,
                           AppointmentRepository appointmentRepository,
-                          TokenService tokenService) {
+                          TokenService tokenService,
+                          PasswordEncoder passwordEncoder) {
         this.patientRepository = patientRepository;
         this.appointmentRepository = appointmentRepository;
         this.tokenService = tokenService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
-     * Registra un paciente nuevo.
+     * Registra un paciente nuevo. La contraseña se guarda hasheada
+     * (BCrypt) antes de persistir.
      *
-     * @param patient paciente a guardar
+     * @param patient paciente a guardar (password en claro)
      * @return {@code 1} éxito, {@code 0} error interno
      */
     @Transactional
     public int createPatient(Patient patient) {
         try {
+            patient.setPassword(passwordEncoder.encode(patient.getPassword()));
             patientRepository.save(patient);
             return 1;
         } catch (Exception e) {

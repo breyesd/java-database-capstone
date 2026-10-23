@@ -12,15 +12,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 
 /**
  * Servicio compartido de autenticación y reglas de negocio transversales:
- * validación de tokens por rol, login de admin y paciente, filtros de
- * doctores y validación de disponibilidad de citas.
- * <p>Nota: {@code filterPatient} y {@code validatePatientLogin} dependen
- * de {@code PatientService}; {@code filterDoctor} y
- * {@code validateAppointment} de {@code DoctorService}. No hay ciclos:
- * esos services no dependen de esta clase.</p>
+ * login de admin y paciente vía Spring Security ({@link AuthenticationManager}),
+ * filtros de doctores y validación de disponibilidad de citas.
+ * <p>Nota: {@code filterPatient} depende de {@code PatientService};
+ * {@code filterDoctor} y {@code validateAppointment} de {@code DoctorService}.
+ * No hay ciclos: esos services no dependen de esta clase.</p>
+ * <p>{@code validateToken} queda obsoleto: los controllers pasarán a usar
+ * el filtro JWT de seguridad (se elimina en una tarea posterior).</p>
  */
 @org.springframework.stereotype.Service
 public class Service {
@@ -36,29 +41,33 @@ public class Service {
     private final PatientRepository patientRepository;
     private final DoctorService doctorService;
     private final PatientService patientService;
+    private final AuthenticationManager authenticationManager;
 
     /**
      * Inyección por constructor de dependencias compartidas.
      *
-     * @param tokenService       generador/validador de JWT
-     * @param adminRepository    repositorio de admins
-     * @param doctorRepository   repositorio de doctores
-     * @param patientRepository  repositorio de pacientes
-     * @param doctorService      servicio de doctores (filtros, disponibilidad)
-     * @param patientService     servicio de pacientes (filtros de citas)
+     * @param tokenService          generador/validador de JWT
+     * @param adminRepository       repositorio de admins
+     * @param doctorRepository      repositorio de doctores
+     * @param patientRepository     repositorio de pacientes
+     * @param doctorService         servicio de doctores (filtros, disponibilidad)
+     * @param patientService        servicio de pacientes (filtros de citas)
+     * @param authenticationManager gestor de autenticación (login admin/paciente)
      */
     public Service(TokenService tokenService,
                    AdminRepository adminRepository,
                    DoctorRepository doctorRepository,
                    PatientRepository patientRepository,
                    DoctorService doctorService,
-                   PatientService patientService) {
+                   PatientService patientService,
+                   AuthenticationManager authenticationManager) {
         this.tokenService = tokenService;
         this.adminRepository = adminRepository;
         this.doctorRepository = doctorRepository;
         this.patientRepository = patientRepository;
         this.doctorService = doctorService;
         this.patientService = patientService;
+        this.authenticationManager = authenticationManager;
     }
 
     /**
@@ -78,19 +87,21 @@ public class Service {
     }
 
     /**
-     * Valida el login de un admin por username y contraseña.
+     * Valida el login de un admin por username y contraseña vía
+     * {@link AuthenticationManager} (usuarios cargados por
+     * {@code ClinicUserDetailsService}).
      *
      * @param receivedAdmin credenciales (username + password)
      * @return 200 {@code {token}} si es válido; 401 si no; 500 error interno
      */
     public ResponseEntity<Map<String, String>> validateAdmin(Admin receivedAdmin) {
         try {
-            Admin admin = adminRepository.findByUsername(receivedAdmin.getUsername());
-            if (admin == null || !admin.getPassword().equals(receivedAdmin.getPassword())) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("message", "Invalid username or password"));
-            }
-            return ResponseEntity.ok(Map.of("token", tokenService.generateToken(admin.getUsername(), "admin")));
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(receivedAdmin.getUsername(), receivedAdmin.getPassword()));
+            return ResponseEntity.ok(Map.of("token", tokenService.generateToken(receivedAdmin.getUsername(), "admin")));
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Invalid username or password"));
         } catch (Exception e) {
             log.error("Error validating admin login {}", receivedAdmin.getUsername(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -183,19 +194,21 @@ public class Service {
     }
 
     /**
-     * Valida el login de un paciente por email y contraseña.
+     * Valida el login de un paciente por email y contraseña vía
+     * {@link AuthenticationManager} (usuarios cargados por
+     * {@code ClinicUserDetailsService}).
      *
      * @param login credenciales (email + password)
      * @return 200 {@code {token}} si es válido; 401 si no; 500 error interno
      */
     public ResponseEntity<Map<String, String>> validatePatientLogin(Login login) {
         try {
-            Patient patient = patientRepository.findByEmail(login.getEmail());
-            if (patient == null || !patient.getPassword().equals(login.getPassword())) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("message", "Invalid email or password"));
-            }
-            return ResponseEntity.ok(Map.of("token", tokenService.generateToken(patient.getEmail(), "patient")));
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(login.getEmail(), login.getPassword()));
+            return ResponseEntity.ok(Map.of("token", tokenService.generateToken(login.getEmail(), "patient")));
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Invalid email or password"));
         } catch (Exception e) {
             log.error("Error validating patient login {}", login.getEmail(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
