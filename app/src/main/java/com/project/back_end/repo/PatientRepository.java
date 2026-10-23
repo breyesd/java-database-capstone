@@ -1,29 +1,21 @@
 package com.project.back_end.repo;
 
-public interface PatientRepository {
-    // 1. Extend JpaRepository:
-//    - The repository extends JpaRepository<Patient, Long>, which provides basic CRUD functionality.
-//    - This allows the repository to perform operations like save, delete, update, and find without needing to implement these methods manually.
-//    - JpaRepository also includes features like pagination and sorting.
+import com.project.back_end.models.Patient;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
-// Example: public interface PatientRepository extends JpaRepository<Patient, Long> {}
+/**
+ * Repositorio JPA de {@link Patient}. Expone la búsqueda por email,
+ * usada por el login de paciente y por la validación de tokens de rol patient.
+ */
+@Repository
+public interface PatientRepository extends JpaRepository<Patient, Long> {
 
-// 2. Custom Query Methods:
-
-//    - **findByEmail**:
-//      - This method retrieves a Patient by their email address.
-//      - Return type: Patient
-//      - Parameters: String email
-
-//    - **findByEmailOrPhone**:
-//      - This method retrieves a Patient by either their email or phone number, allowing flexibility for the search.
-//      - Return type: Patient
-//      - Parameters: String email, String phone
-
-// 3. @Repository annotation:
-//    - The @Repository annotation marks this interface as a Spring Data JPA repository.
-//    - Spring Data JPA automatically implements this repository, providing the necessary CRUD functionality and custom queries defined in the interface.
-
-
+    /**
+     * Busca un paciente por su email (identificador de login y subject del JWT).
+     *
+     * @param email email del paciente
+     * @return el paciente encontrado o {@code null} si no existe
+     */
+    Patient findByEmail(String email);
 }
-

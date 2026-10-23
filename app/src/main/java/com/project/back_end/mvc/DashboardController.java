@@ -1,30 +1,58 @@
 package com.project.back_end.mvc;
 
+import com.project.back_end.services.Service;
+import java.util.Map;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+/**
+ * Controller MVC (Thymeleaf) que sirve los dashboards de admin y doctor
+ * tras validar el token JWT del rol correspondiente.
+ */
+@Controller
 public class DashboardController {
 
-// 1. Set Up the MVC Controller Class:
-//    - Annotate the class with `@Controller` to indicate that it serves as an MVC controller returning view names (not JSON).
-//    - This class handles routing to admin and doctor dashboard pages based on token validation.
+    private final Service service;
 
+    /**
+     * Inyección por constructor del servicio compartido de validación.
+     *
+     * @param service servicio con {@code validateToken}
+     */
+    public DashboardController(Service service) {
+        this.service = service;
+    }
 
-// 2. Autowire the Shared Service:
-//    - Inject the common `Service` class, which provides the token validation logic used to authorize access to dashboards.
+    /**
+     * Sirve la vista del dashboard de admin si el token es válido para el rol admin;
+     * en caso contrario redirige a la portada.
+     *
+     * @param token JWT de admin (path variable final de la ruta)
+     * @return nombre de la vista {@code admin/adminDashboard} o {@code redirect:/}
+     */
+    @GetMapping("/adminDashboard/{token}")
+    public String adminDashboard(@PathVariable String token) {
+        Map<String, Object> errors = service.validateToken(token, "admin");
+        if (errors.isEmpty()) {
+            return "admin/adminDashboard";
+        }
+        return "redirect:/";
+    }
 
-
-// 3. Define the `adminDashboard` Method:
-//    - Handles HTTP GET requests to `/adminDashboard/{token}`.
-//    - Accepts an admin's token as a path variable.
-//    - Validates the token using the shared service for the `"admin"` role.
-//    - If the token is valid (i.e., no errors returned), forwards the user to the `"admin/adminDashboard"` view.
-//    - If invalid, redirects to the root URL, likely the login or home page.
-
-
-// 4. Define the `doctorDashboard` Method:
-//    - Handles HTTP GET requests to `/doctorDashboard/{token}`.
-//    - Accepts a doctor's token as a path variable.
-//    - Validates the token using the shared service for the `"doctor"` role.
-//    - If the token is valid, forwards the user to the `"doctor/doctorDashboard"` view.
-//    - If the token is invalid, redirects to the root URL.
-
-
+    /**
+     * Sirve la vista del dashboard de doctor si el token es válido para el rol doctor;
+     * en caso contrario redirige a la portada.
+     *
+     * @param token JWT de doctor (path variable final de la ruta)
+     * @return nombre de la vista {@code doctor/doctorDashboard} o {@code redirect:/}
+     */
+    @GetMapping("/doctorDashboard/{token}")
+    public String doctorDashboard(@PathVariable String token) {
+        Map<String, Object> errors = service.validateToken(token, "doctor");
+        if (errors.isEmpty()) {
+            return "doctor/doctorDashboard";
+        }
+        return "redirect:/";
+    }
 }
