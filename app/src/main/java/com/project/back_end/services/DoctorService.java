@@ -16,6 +16,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -31,6 +35,8 @@ public class DoctorService {
     private final DoctorRepository doctorRepository;
     private final AppointmentRepository appointmentRepository;
     private final TokenService tokenService;
+    private final AuthenticationManager authenticationManager;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * Inyección por constructor de dependencias del servicio.
@@ -38,13 +44,19 @@ public class DoctorService {
      * @param doctorRepository   repositorio de doctores
      * @param appointmentRepository repositorio de citas (slots ocupados)
      * @param tokenService       generador de JWT para el login
+     * @param authenticationManager autenticador de Spring Security para el login
+     * @param passwordEncoder    codificador BCrypt para las contraseñas de doctores
      */
     public DoctorService(DoctorRepository doctorRepository,
                          AppointmentRepository appointmentRepository,
-                         TokenService tokenService) {
+                         TokenService tokenService,
+                         AuthenticationManager authenticationManager,
+                         PasswordEncoder passwordEncoder) {
         this.doctorRepository = doctorRepository;
         this.appointmentRepository = appointmentRepository;
         this.tokenService = tokenService;
+        this.authenticationManager = authenticationManager;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
@@ -80,9 +92,10 @@ public class DoctorService {
     }
 
     /**
-     * Da de alta un doctor si su email no existe aún.
+     * Da de alta un doctor si su email no existe aún. La contraseña se
+     * guarda hasheada (BCrypt) antes de persistir.
      *
-     * @param doctor doctor a guardar
+     * @param doctor doctor a guardar (password en claro)
      * @return {@code 1} éxito, {@code -1} email ya registrado, {@code 0} error interno
      */
     @Transactional
@@ -91,6 +104,7 @@ public class DoctorService {
             if (doctorRepository.findByEmail(doctor.getEmail()) != null) {
                 return -1;
             }
+            doctor.setPassword(passwordEncoder.encode(doctor.getPassword()));
             doctorRepository.save(doctor);
             return 1;
         } catch (Exception e) {
@@ -100,7 +114,8 @@ public class DoctorService {
     }
 
     /**
-     * Actualiza un doctor existente por id.
+     * Actualiza un doctor existente por id. Si el password viene vacío o
+     * nulo se conserva el hash existente; si viene nuevo se hashea (BCrypt).
      *
      * @param doctor doctor con los datos actualizados
      * @return {@code 1} éxito, {@code -1} no encontrado, {@code 0} error interno
@@ -110,6 +125,11 @@ public class DoctorService {
         try {
             if (doctor.getId() == null || doctorRepository.findById(doctor.getId()).isEmpty()) {
                 return -1;
+            }
+            if (doctor.getPassword() == null || doctor.getPassword().isBlank()) {
+                doctor.setPassword(doctorRepository.findById(doctor.getId()).get().getPassword());
+            } else {
+                doctor.setPassword(passwordEncoder.encode(doctor.getPassword()));
             }
             doctorRepository.save(doctor);
             return 1;
@@ -151,19 +171,21 @@ public class DoctorService {
     }
 
     /**
-     * Valida el login de un doctor por email y contraseña.
+     * Valida el login de un doctor por email y contraseña vía
+     * {@link AuthenticationManager} (usuarios cargados por
+     * {@code ClinicUserDetailsService}).
      *
      * @param login credenciales (email + password)
      * @return 200 {@code {token}} si es válido; 401 si no; 500 en error interno
      */
     public ResponseEntity<Map<String, String>> validateDoctor(Login login) {
         try {
-            Doctor doctor = doctorRepository.findByEmail(login.getEmail());
-            if (doctor == null || !doctor.getPassword().equals(login.getPassword())) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("message", "Invalid email or password"));
-            }
-            return ResponseEntity.ok(Map.of("token", tokenService.generateToken(doctor.getEmail(), "doctor")));
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(login.getEmail(), login.getPassword()));
+            return ResponseEntity.ok(Map.of("token", tokenService.generateToken(login.getEmail(), "doctor")));
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Invalid email or password"));
         } catch (Exception e) {
             log.error("Error validating doctor login {}", login.getEmail(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
