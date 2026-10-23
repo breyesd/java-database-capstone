@@ -38,16 +38,9 @@ async function loadAppointments() {
       tableBody.innerHTML =
         '<tr><td colspan="5" class="noPatientRecord">No Appointments found for today.</td></tr>';
       return;
-    }
-
-    appointments.forEach((appointment) => {
-      const patient = {
-        id: appointment.patientId,
-        name: appointment.patientName,
-        phone: appointment.patientPhone,
-        email: appointment.patientEmail,
-      };
-      const row = createPatientRow(patient, appointment.id, appointment.doctorId);
+    }    
+    appointments.forEach((appointment) => {      
+      const row = createPatientRow(appointment.patient, appointment.id, appointment.doctor.id);
       tableBody.appendChild(row);
     });
   } catch (error) {

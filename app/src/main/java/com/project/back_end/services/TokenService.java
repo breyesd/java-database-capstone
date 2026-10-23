@@ -50,7 +50,7 @@ public class TokenService {
     /**
      * Genera un JWT firmado cuyo subject es el email (o username, para admin).
      *
-     * @param email subject del token
+     * @param email subject del token (email, o username para admin)
      * @return token JWT como string, expirando en 7 días
      */
     public String generateToken(String email) {
@@ -71,7 +71,7 @@ public class TokenService {
      * @return subject del token
      * @throws Exception si el token es inválido, expirado o la firma no coincide
      */
-    public String extractEmail(String token) throws Exception {
+    public String extractIdentifier(String token) throws Exception {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
@@ -90,7 +90,7 @@ public class TokenService {
      */
     public boolean validateToken(String token, String role) {
         try {
-            String email = extractEmail(token);
+            String email = extractIdentifier(token);
             return switch (role) {
                 case "admin" -> adminRepository.findByUsername(email) != null;
                 case "doctor" -> doctorRepository.findByEmail(email) != null;

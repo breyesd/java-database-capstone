@@ -15,7 +15,7 @@ async function loadAppointments(filter = "upcoming") {
 
   const today = new Date().setHours(0, 0, 0, 0);
   let filteredAppointments = appointments;
-
+    
   if (filter === "upcoming") {
     filteredAppointments = appointments.filter(app => new Date(app.date) >= today);
   } else if (filter === "past") {

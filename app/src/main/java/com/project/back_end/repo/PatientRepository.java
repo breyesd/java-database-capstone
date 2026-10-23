@@ -5,8 +5,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 /**
- * Repositorio JPA de {@link Patient}. Expone la búsqueda por email,
- * usada por el login de paciente y por la validación de tokens de rol patient.
+ * Repositorio JPA de {@link Patient}. Expone la búsqueda por email
+ * (login y validación de tokens) y por email o teléfono (control de
+ * duplicados en el registro).
  */
 @Repository
 public interface PatientRepository extends JpaRepository<Patient, Long> {
@@ -18,4 +19,14 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
      * @return el paciente encontrado o {@code null} si no existe
      */
     Patient findByEmail(String email);
+
+    /**
+     * Busca un paciente por email o teléfono (usado para rechazar
+     * registros duplicados).
+     *
+     * @param email email del paciente
+     * @param phone teléfono del paciente
+     * @return el paciente encontrado o {@code null} si no existe
+     */
+    Patient findByEmailOrPhone(String email, String phone);
 }

@@ -1,30 +1,47 @@
 package com.project.back_end.DTO;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
+/**
+ * DTO de credenciales de login para doctor y paciente.
+ * El campo {@code email} acepta también el alias {@code identifier}
+ * en el request (convención de la guía del curso), de modo que ambos
+ * formatos de body se deserializan correctamente.
+ * No es una entidad: solo se usa en {@code @RequestBody}.
+ */
 public class Login {
-    
-// 1. 'email' field:
-//    - Type: private String
-//    - Description:
-//      - Represents the email address used for logging into the system.
-//      - The email field is expected to contain a valid email address for user authentication purposes.
 
-// 2. 'password' field:
-//    - Type: private String
-//    - Description:
-//      - Represents the password associated with the email address.
-//      - The password field is used for verifying the user's identity during login.
-//      - It is generally hashed before being stored and compared during authentication.
+    /**
+     * Identificador de login: email para doctor/paciente.
+     * Acepta también el nombre {@code identifier} en el JSON de entrada.
+     */
+    @JsonAlias("identifier")
+    private String email;
 
-// 3. Constructor:
-//    - No explicit constructor is defined for this class, as it relies on the default constructor provided by Java.
-//    - This class can be initialized with setters or directly via reflection, as per the application's needs.
+    /** Contraseña proporcionada por el usuario. */
+    private String password;
 
-// 4. Getters and Setters:
-//    - Standard getter and setter methods are provided for both 'email' and 'password' fields.
-//    - The 'getEmail()' method allows access to the email value.
-//    - The 'setEmail(String email)' method sets the email value.
-//    - The 'getPassword()' method allows access to the password value.
-//    - The 'setPassword(String password)' method sets the password value.
+    /** Constructor vacío para la deserialización. */
+    public Login() {
+    }
 
+    /** @return email de login */
+    public String getEmail() {
+        return email;
+    }
 
+    /** @param email email a asignar */
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    /** @return contraseña de login */
+    public String getPassword() {
+        return password;
+    }
+
+    /** @param password contraseña a asignar */
+    public void setPassword(String password) {
+        this.password = password;
+    }
 }

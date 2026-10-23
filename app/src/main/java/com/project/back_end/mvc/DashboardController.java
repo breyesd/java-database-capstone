@@ -2,6 +2,7 @@ package com.project.back_end.mvc;
 
 import com.project.back_end.services.Service;
 import java.util.Map;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,8 +34,8 @@ public class DashboardController {
      */
     @GetMapping("/adminDashboard/{token}")
     public String adminDashboard(@PathVariable String token) {
-        Map<String, Object> errors = service.validateToken(token, "admin");
-        if (errors.isEmpty()) {
+        ResponseEntity<Map<String, String>> res = service.validateToken(token, "admin");
+        if (res.getStatusCode().is2xxSuccessful()) {
             return "admin/adminDashboard";
         }
         return "redirect:/";
@@ -49,8 +50,8 @@ public class DashboardController {
      */
     @GetMapping("/doctorDashboard/{token}")
     public String doctorDashboard(@PathVariable String token) {
-        Map<String, Object> errors = service.validateToken(token, "doctor");
-        if (errors.isEmpty()) {
+        ResponseEntity<Map<String, String>> res = service.validateToken(token, "doctor");
+        if (res.getStatusCode().is2xxSuccessful()) {
             return "doctor/doctorDashboard";
         }
         return "redirect:/";
