@@ -2,7 +2,6 @@ package com.project.back_end.config;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -20,7 +19,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 /**
  * Configuración de Spring Security: chain stateless (CSRF off), matriz
- * RBAC por URL (spec 2026-09-28 §5), handlers 401/403 (JSON, o redirect
+ * RBAC por URL, handlers 401/403 (JSON, o redirect
  * a / para navegadores), BCrypt y registro del filtro JWT.
  */
 @Configuration
@@ -90,7 +89,7 @@ public class SecurityConfig {
     }
 
     /**
-     * Chain stateless con la matriz RBAC de la spec §5.
+     * Chain stateless con la matriz RBAC
      *
      * @param http            configuración HttpSecurity
      * @param jwtFilter       filtro JWT propio
