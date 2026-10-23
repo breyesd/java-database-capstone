@@ -90,7 +90,7 @@ public class Service {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("message", "Invalid username or password"));
             }
-            return ResponseEntity.ok(Map.of("token", tokenService.generateToken(admin.getUsername())));
+            return ResponseEntity.ok(Map.of("token", tokenService.generateToken(admin.getUsername(), "admin")));
         } catch (Exception e) {
             log.error("Error validating admin login {}", receivedAdmin.getUsername(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -195,7 +195,7 @@ public class Service {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("message", "Invalid email or password"));
             }
-            return ResponseEntity.ok(Map.of("token", tokenService.generateToken(patient.getEmail())));
+            return ResponseEntity.ok(Map.of("token", tokenService.generateToken(patient.getEmail(), "patient")));
         } catch (Exception e) {
             log.error("Error validating patient login {}", login.getEmail(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

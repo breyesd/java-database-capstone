@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 /**
  * Servicio JWT (JJWT 0.12.6) responsable de generar, extraer y validar tokens.
  * El subject del token es el email del usuario; para admin es el username.
+ * El claim {@code role} indica el rol del dueño ({@code admin|doctor|patient}).
  * Expiración: 7 días.
  */
 @Component
@@ -48,16 +49,19 @@ public class TokenService {
     }
 
     /**
-     * Genera un JWT firmado cuyo subject es el email (o username, para admin).
+     * Genera un JWT firmado cuyo subject es el email (o username, para admin)
+     * y cuyo claim {@code role} indica el rol del dueño.
      *
      * @param email subject del token (email, o username para admin)
+     * @param role  rol del dueño: {@code admin|doctor|patient}
      * @return token JWT como string, expirando en 7 días
      */
-    public String generateToken(String email) {
+    public String generateToken(String email, String role) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + 1000L * 60 * 60 * 24 * 7);
         return Jwts.builder()
                 .subject(email)
+                .claim("role", role)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(getSigningKey())
@@ -78,6 +82,22 @@ public class TokenService {
                 .parseSignedClaims(token)
                 .getPayload()
                 .getSubject();
+    }
+
+    /**
+     * Verifica la firma del token y devuelve el valor del claim {@code role}.
+     *
+     * @param token token JWT
+     * @return rol del dueño: {@code admin}, {@code doctor} o {@code patient}
+     * @throws Exception si el token es inválido, expirado o la firma no coincide
+     */
+    public String extractRole(String token) throws Exception {
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("role", String.class);
     }
 
     /**

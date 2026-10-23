@@ -163,7 +163,7 @@ public class DoctorService {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("message", "Invalid email or password"));
             }
-            return ResponseEntity.ok(Map.of("token", tokenService.generateToken(doctor.getEmail())));
+            return ResponseEntity.ok(Map.of("token", tokenService.generateToken(doctor.getEmail(), "doctor")));
         } catch (Exception e) {
             log.error("Error validating doctor login {}", login.getEmail(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
