@@ -1,5 +1,6 @@
 package com.project.back_end.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -49,6 +50,7 @@ public class Patient {
 //      - Represents the patient's password for login authentication.
 //      - The @NotNull annotation ensures that a password must be provided.
 //      - The @Size(min = 6) annotation ensures that the password must be at least 6 characters long.
+//      - The @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) annotation ensures that the password is not serialized in the response (hidden from the frontend).
 
 // 5. 'phone' field:
 //    - Type: private String
@@ -84,9 +86,10 @@ public class Patient {
     @Email
     private String email;
 
-    /** Credencial de acceso; obligatoria, mínimo 6 caracteres. */
+    /** Credencial de acceso; obligatoria, mínimo 6 caracteres y nunca serializada en respuestas JSON (WRITE_ONLY). */
     @NotNull
     @Size(min = 6)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
     /** Teléfono de exactamente 10 dígitos; el registro rechaza teléfonos duplicados en la capa servicio. */

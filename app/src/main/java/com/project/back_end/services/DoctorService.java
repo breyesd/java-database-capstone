@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -173,15 +174,25 @@ public class DoctorService {
     /**
      * Valida el login de un doctor por email y contraseña vía
      * {@link AuthenticationManager} (usuarios cargados por
-     * {@code ClinicUserDetailsService}).
+     * {@code ClinicUserDetailsService}). Comprueba además que el
+     * principal autenticado tenga el rol {@code ROLE_DOCTOR}: si las
+     * credenciales pertenecen a otro rol (admin/paciente) se responde
+     * 401 con el mismo mensaje que credenciales inválidas, evitando
+     * emitir un token muerto.
      *
      * @param login credenciales (email + password)
-     * @return 200 {@code {token}} si es válido; 401 si no; 500 en error interno
+     * @return 200 {@code {token}} si es válido y de rol doctor; 401 si no; 500 en error interno
      */
     public ResponseEntity<Map<String, String>> validateDoctor(Login login) {
         try {
-            authenticationManager.authenticate(
+            Authentication auth = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(login.getEmail(), login.getPassword()));
+            boolean rightRole = auth.getAuthorities().stream()
+                    .anyMatch(authority -> "ROLE_DOCTOR".equals(authority.getAuthority()));
+            if (!rightRole) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("message", "Invalid email or password"));
+            }
             return ResponseEntity.ok(Map.of("token", tokenService.generateToken(login.getEmail(), "doctor")));
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

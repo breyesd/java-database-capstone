@@ -16,7 +16,9 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -47,11 +49,26 @@ class DoctorServiceLoginTest {
         Authentication auth = Mockito.mock(Authentication.class);
         Mockito.when(authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken("dr.x@example.com", "secret"))).thenReturn(auth);
+        Mockito.doReturn(List.of(new SimpleGrantedAuthority("ROLE_DOCTOR"))).when(auth).getAuthorities();
         Mockito.when(tokenService.generateToken("dr.x@example.com", "doctor")).thenReturn("jwt.doc");
 
         ResponseEntity<Map<String, String>> res = doctorService.validateDoctor(login);
         assertEquals(HttpStatus.OK, res.getStatusCode());
         assertEquals("jwt.doc", res.getBody().get("token"));
+    }
+
+    @Test
+    void doctorLoginWithPatientCredentialsReturns401() {
+        Login login = new Login();
+        login.setEmail("jane.doe@example.com");
+        login.setPassword("passJane1");
+        Authentication auth = Mockito.mock(Authentication.class);
+        Mockito.when(authenticationManager.authenticate(Mockito.any())).thenReturn(auth);
+        Mockito.doReturn(List.of(new SimpleGrantedAuthority("ROLE_PATIENT"))).when(auth).getAuthorities();
+
+        ResponseEntity<Map<String, String>> res = doctorService.validateDoctor(login);
+        assertEquals(HttpStatus.UNAUTHORIZED, res.getStatusCode());
+        assertEquals("Invalid email or password", res.getBody().get("message"));
     }
 
     @Test

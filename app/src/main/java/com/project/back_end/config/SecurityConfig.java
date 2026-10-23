@@ -130,6 +130,7 @@ public class SecurityConfig {
                         // patient
                         .requestMatchers("/patient/filter/**").hasRole("PATIENT")
                         .requestMatchers(HttpMethod.GET, "/patient/*").hasRole("PATIENT")
+                        .requestMatchers(HttpMethod.GET, "/appointments/*/*/*").hasRole("DOCTOR")
                         .requestMatchers(HttpMethod.POST, "/appointments/*").hasRole("PATIENT")
                         .requestMatchers(HttpMethod.PUT, "/appointments/*").hasRole("PATIENT")
                         .requestMatchers(HttpMethod.DELETE, "/appointments/*/*").hasRole("PATIENT")

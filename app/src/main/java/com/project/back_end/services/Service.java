@@ -73,15 +73,23 @@ public class Service {
     /**
      * Valida el login de un admin por username y contraseña vía
      * {@link AuthenticationManager} (usuarios cargados por
-     * {@code ClinicUserDetailsService}).
+     * {@code ClinicUserDetailsService}). Comprueba además que el
+     * principal autenticado tenga el rol {@code ROLE_ADMIN}: si las
+     * credenciales pertenecen a otro rol (doctor/paciente) se responde
+     * 401 con el mismo mensaje que credenciales inválidas, evitando
+     * emitir un token muerto.
      *
      * @param receivedAdmin credenciales (username + password)
-     * @return 200 {@code {token}} si es válido; 401 si no; 500 error interno
+     * @return 200 {@code {token}} si es válido y de rol admin; 401 si no; 500 error interno
      */
     public ResponseEntity<Map<String, String>> validateAdmin(Admin receivedAdmin) {
         try {
-            authenticationManager.authenticate(
+            Authentication auth = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(receivedAdmin.getUsername(), receivedAdmin.getPassword()));
+            if (!hasRole(auth, "ROLE_ADMIN")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("message", "Invalid username or password"));
+            }
             return ResponseEntity.ok(Map.of("token", tokenService.generateToken(receivedAdmin.getUsername(), "admin")));
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -180,15 +188,23 @@ public class Service {
     /**
      * Valida el login de un paciente por email y contraseña vía
      * {@link AuthenticationManager} (usuarios cargados por
-     * {@code ClinicUserDetailsService}).
+     * {@code ClinicUserDetailsService}). Comprueba además que el
+     * principal autenticado tenga el rol {@code ROLE_PATIENT}: si las
+     * credenciales pertenecen a otro rol (admin/doctor) se responde
+     * 401 con el mismo mensaje que credenciales inválidas, evitando
+     * emitir un token muerto.
      *
      * @param login credenciales (email + password)
-     * @return 200 {@code {token}} si es válido; 401 si no; 500 error interno
+     * @return 200 {@code {token}} si es válido y de rol paciente; 401 si no; 500 error interno
      */
     public ResponseEntity<Map<String, String>> validatePatientLogin(Login login) {
         try {
-            authenticationManager.authenticate(
+            Authentication auth = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(login.getEmail(), login.getPassword()));
+            if (!hasRole(auth, "ROLE_PATIENT")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("message", "Invalid email or password"));
+            }
             return ResponseEntity.ok(Map.of("token", tokenService.generateToken(login.getEmail(), "patient")));
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -239,6 +255,20 @@ public class Service {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "Internal server error"));
         }
+    }
+
+    /**
+     * Comprueba si el principal autenticado posee la autoridad esperada
+     * (p. ej. {@code ROLE_PATIENT}). Sirve para rechazar credenciales de
+     * otro rol autenticadas contra un login de endpoint distinto.
+     *
+     * @param auth         resultado de {@code authenticationManager.authenticate}
+     * @param expectedRole autoridad requerida por el endpoint
+     * @return {@code true} si el rol coincide
+     */
+    private boolean hasRole(Authentication auth, String expectedRole) {
+        return auth.getAuthorities().stream()
+                .anyMatch(authority -> expectedRole.equals(authority.getAuthority()));
     }
 
     /**
