@@ -121,10 +121,10 @@ public class SecurityConfig {
                         .requestMatchers("/doctor/appointments/**", "/doctorDashboard/**").hasRole("DOCTOR")
                         .requestMatchers(HttpMethod.POST, "/prescription/*").hasRole("DOCTOR")
                         .requestMatchers(HttpMethod.GET, "/prescription/*/*").hasRole("DOCTOR")
-                        .requestMatchers(HttpMethod.GET, "/doctor/*").hasRole("DOCTOR")
                         // cross-rol
                         .requestMatchers(HttpMethod.GET, "/doctor/availability/**")
                         .hasAnyRole("ADMIN", "DOCTOR", "PATIENT")
+                        .requestMatchers(HttpMethod.GET, "/doctor/*").hasRole("DOCTOR")
                         .requestMatchers(HttpMethod.GET, "/patient/*/patient/*").hasRole("PATIENT")
                         .requestMatchers(HttpMethod.GET, "/patient/*/doctor/*").hasRole("DOCTOR")
                         // patient
